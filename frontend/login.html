@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>RCMS • Login</title>
+  <link rel="stylesheet" href="./assets/css/styles.css"/>
+</head>
+<body>
+  <div class="topbar">
+    <div class="container">
+      <div class="nav">
+        <a class="brand" href="./index.html">
+          <div class="logo" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M12 2l8 4.6v10.8L12 22l-8-4.6V6.6L12 2z" stroke="white" stroke-width="1.6" opacity=".95"/>
+              <path d="M8 12.2l2.2 2.2L16.5 8" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <div class="title">
+            <strong>RCMS</strong>
+            <span>Nurses Licensing Authority</span>
+          </div>
+        </a>
+
+        <div class="navright">
+          <div class="badge warn" data-backendbadge>
+            <span class="dot"></span>
+            <span class="label">Backend</span>&nbsp;·&nbsp;<span class="value">Checking…</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <main class="main">
+    <div class="container">
+      <section class="hero">
+        <h1 class="h1">Sign in</h1>
+        <p class="sub">Backend login is now connected. Use one of the seeded emails (nurse1/nurse2/officer).</p>
+      </section>
+
+      <div class="grid">
+        <div class="card two">
+          <div class="head">
+            <h2>Account</h2>
+            <div class="meta">Password is ignored for now</div>
+          </div>
+          <div class="body">
+            <form class="form" id="loginForm">
+              <div class="field">
+                <label for="email">Email</label>
+                <input id="email" type="email" placeholder="nurse1@rcms.local" required />
+                <div class="small" style="margin-top:6px; opacity:.8;">
+                  Try: <code>nurse1@rcms.local</code>, <code>nurse2@rcms.local</code>, <code>officer@rcms.local</code>
+                </div>
+              </div>
+
+              <div class="field">
+                <label for="password">Password</label>
+                <input id="password" type="password" placeholder="any value (not used yet)" />
+              </div>
+
+              <div class="field">
+                <label for="role">Role (UI-only)</label>
+                <select id="role">
+                  <div class="small" style="margin-top:6px; opacity:.75;">
+  Role is set by backend based on your email. (Dropdown is just for display.)
+</div>
+
+                  <option value="APPLICANT">Applicant (Nurse)</option>
+                  <option value="OFFICER">Officer</option>
+                </select>
+                <div class="small" style="margin-top:6px; opacity:.75;">
+                  Role is determined by the backend from the Users table.
+                </div>
+              </div>
+
+              <div class="row">
+                <a class="btn" href="./index.html">Back</a>
+                <button class="btn primary" type="submit">Continue</button>
+              </div>
+
+              <div class="empty" style="margin-top:10px;">
+                <strong>Note:</strong> This login calls <code>/api/auth/login</code> and loads your role from SQL Server.
+                <div class="small">If login fails, check the email exists in <code>RCMS_Nurses.dbo.Users</code>.</div>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <div class="card two">
+          <div class="head">
+            <h2>What you can do next</h2>
+            <div class="meta">Simple build order</div>
+          </div>
+          <div class="body">
+            <div class="empty">
+              <strong>1) Applicant Dashboard:</strong> submit new application via XML form and track status.
+              <div class="small">Now backed by SQL Server via the Node API.</div>
+            </div>
+            <div style="height:10px"></div>
+            <div class="empty">
+              <strong>2) Officer Dashboard:</strong> review submitted applications and approve/reject.
+              <div class="small">Approving will issue a license record if missing.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer">Tip: Open with VS Code Live Server for best results.</div>
+    </div>
+  </main>
+
+  <div class="toast" data-toast>
+    <div class="t">Title</div>
+    <div class="m">Message</div>
+  </div>
+
+<script>
+  const API_BASE = "http://127.0.0.1:3001/api";
+
+  function show(msg) {
+    // Uses your toast if present; else fallback to alert
+    const t = document.querySelector("[data-toast]");
+    if (!t) return alert(msg);
+    t.querySelector(".t").textContent = "RCMS";
+    t.querySelector(".m").textContent = msg;
+    t.classList.add("show");
+    setTimeout(() => t.classList.remove("show"), 3200);
+  }
+
+  async function ping() {
+    try {
+      const r = await fetch(`${API_BASE}/health`, { cache: "no-store" });
+      return r.ok;
+    } catch {
+      return false;
+    }
+  }
+
+  function saveSession(session) {
+    localStorage.setItem("rcms_session_v1", JSON.stringify(session));
+  }
+
+  document.addEventListener("DOMContentLoaded", async () => {
+    const form = document.getElementById("loginForm");
+    const btn = form.querySelector('button[type="submit"]');
+
+    // Optional: update backend badge
+    const badge = document.querySelector("[data-backendbadge]");
+    const ok = await ping();
+    if (badge) {
+      badge.classList.toggle("ok", ok);
+      badge.classList.toggle("warn", !ok);
+      const value = badge.querySelector(".value");
+      if (value) value.textContent = ok ? "Connected" : "Not connected";
+    }
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();              // ✅ stops refresh
+      e.stopPropagation();
+
+      btn.disabled = true;
+
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value;
+
+      try {
+        const backendOk = await ping();
+        if (!backendOk) {
+          show("Backend not running on 3001. Start: backend → npm run dev");
+          return;
+        }
+
+        const res = await fetch(`${API_BASE}/auth/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password })
+        });
+
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.message || `Login failed (${res.status})`);
+
+        saveSession({ email: data.email, role: data.role, token: data.token });
+        show("Signed in! Redirecting…");
+
+        setTimeout(() => {
+          window.location.href = data.role === "OFFICER"
+            ? "./officer-dashboard.html"
+            : "./applicant-dashboard.html";
+        }, 300);
+      } catch (err) {
+        show(err.message || "Login failed");
+        console.error("LOGIN_ERR:", err);
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  });
+</script>

@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>RCMS • Regulatory Case Management</title>
+  <link rel="stylesheet" href="./assets/css/styles.css"/>
+</head>
+<body>
+  <div class="topbar">
+    <div class="container">
+      <div class="nav">
+        <a class="brand" href="./index.html">
+          <div class="logo" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M12 2l8 4.6v10.8L12 22l-8-4.6V6.6L12 2z" stroke="white" stroke-width="1.6" opacity=".95"/>
+              <path d="M8 12.2l2.2 2.2L16.5 8" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <div class="title">
+            <strong>RCMS</strong>
+            <span>Nurses Licensing Authority</span>
+          </div>
+        </a>
+
+        <div class="navright">
+          <div class="badge warn" data-backendbadge>
+            <span class="dot"></span>
+            <span class="label">Backend</span>&nbsp;·&nbsp;<span class="value">Checking…</span>
+          </div>
+          <button class="btn" id="goBtn">Go</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <main class="main">
+    <div class="container">
+      <section class="hero">
+        <h1 class="h1">Regulatory Case Management System</h1>
+        <p class="sub">
+          Simple licensing workflow for nurses: applications, approvals, licenses, and renewals — with XML-driven forms.
+        </p>
+      </section>
+
+      <div class="grid">
+        <div class="card">
+          <div class="head">
+            <h2>Get started</h2>
+            <div class="meta">Frontend is ready</div>
+          </div>
+          <div class="body">
+            <div class="kpis">
+              <div class="kpi">
+                <div class="label">Applicant portal</div>
+                <div class="value">Submit applications</div>
+                <div class="hint">New license + renewal forms</div>
+              </div>
+              <div class="kpi">
+                <div class="label">Officer portal</div>
+                <div class="value">Review & approve</div>
+                <div class="hint">Issue licenses and track status</div>
+              </div>
+              <div class="kpi">
+                <div class="label">Reporting</div>
+                <div class="value">Power BI views</div>
+                <div class="hint">Pipeline, expiries, renewals</div>
+              </div>
+            </div>
+
+            <div class="row" style="margin-top:14px;">
+              <div class="empty" style="flex:1;">
+                <strong>Next step:</strong> open <code>login.html</code> and sign in (UI only).
+                <div class="small">When backend is added, login will be real (JWT).</div>
+              </div>
+              <a class="btn primary" href="./login.html">Open Login</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer">© RCMS (Fictional) — Frontend starter</div>
+    </div>
+  </main>
+
+  <div class="toast" data-toast>
+    <div class="t">Title</div>
+    <div class="m">Message</div>
+  </div>
+
+  <script type="module">
+    import { mountBackendBadge, getSession } from "./assets/js/app.js";
+    await mountBackendBadge();
+
+    const s = getSession();
+    const goBtn = document.getElementById("goBtn");
+    goBtn.addEventListener("click", () => {
+      if (!s) window.location.href = "./login.html";
+      else window.location.href = s.role === "OFFICER" ? "./officer-dashboard.html" : "./applicant-dashboard.html";
+    });
+  </script>
+</body>
+</html>

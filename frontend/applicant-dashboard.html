@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>RCMS • Applicant Dashboard</title>
+  <link rel="stylesheet" href="./assets/css/styles.css"/>
+</head>
+<body>
+  <div class="topbar">
+    <div class="container">
+      <div class="nav">
+        <a class="brand" href="./index.html">
+          <div class="logo" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M12 2l8 4.6v10.8L12 22l-8-4.6V6.6L12 2z" stroke="white" stroke-width="1.6" opacity=".95"/>
+              <path d="M8 12.2l2.2 2.2L16.5 8" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <div class="title">
+            <strong>RCMS</strong>
+            <span>Nurses Licensing Authority</span>
+          </div>
+        </a>
+
+        <div class="navlinks">
+          <a class="chip" data-nav href="./applicant-dashboard.html" aria-current="page">Applicant</a>
+          <a class="chip" data-nav href="./license.html">My License</a>
+        </div>
+
+        <div class="navright">
+          <div class="badge warn" data-backendbadge>
+            <span class="dot"></span>
+            <span class="label">Backend</span>&nbsp;·&nbsp;<span class="value">Checking…</span>
+          </div>
+          <div class="badge" data-userbadge><span class="dot"></span>—</div>
+          <button class="btn" id="logoutBtn">Logout</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <main class="main">
+    <div class="container">
+      <section class="hero">
+        <h1 class="h1">Applicant Dashboard</h1>
+        <p class="sub">Submit a new nurse license application or request a renewal. Track statuses in one place.</p>
+      </section>
+
+      <div class="grid">
+        <div class="card">
+          <div class="head">
+            <h2>Actions</h2>
+            <div class="meta">XML-driven forms</div>
+          </div>
+          <div class="body">
+            <div class="row">
+              <div class="empty" style="flex:1;">
+                <strong>New License Application</strong>
+                <div class="small">Fill the XML-driven form and submit to the backend when available.</div>
+              </div>
+              <button class="btn primary" id="btnNewApp">Open Form</button>
+            </div>
+
+            <div style="height:10px"></div>
+
+            <div class="row">
+              <div class="empty" style="flex:1;">
+                <strong>Renewal Request</strong>
+                <div class="small">If you already have a license, submit renewal before expiry.</div>
+              </div>
+              <button class="btn" id="btnRenew">Open Form</button>
+            </div>
+
+            <div style="height:14px"></div>
+            <div id="formMount"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="head">
+            <h2>My Applications</h2>
+            <div class="meta">From backend</div>
+          </div>
+          <div class="body" id="appsBody">
+            <div class="empty">
+              <strong>No data yet.</strong>
+              <div class="small">Once backend + SQL Server are connected, your submitted applications will appear here.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer">Applicant view • RCMS</div>
+    </div>
+  </main>
+
+  <div class="toast" data-toast>
+    <div class="t">Title</div>
+    <div class="m">Message</div>
+  </div>
+
+  <script type="module">
+    import { requireAuth, setActiveNav, mountUserBadge, mountBackendBadge, logout, toast, formatDate, statusPill } from "./assets/js/app.js";
+    import { apiGetMyApplications, apiCreateApplication, apiSubmitRenewal } from "./assets/js/api.js";
+    import { renderForm } from "./assets/js/form-renderer.js";
+
+    const session = requireAuth(["APPLICANT"]);
+    setActiveNav();
+    mountUserBadge();
+    await mountBackendBadge();
+
+    document.getElementById("logoutBtn").addEventListener("click", logout);
+
+    async function loadApps() {
+      const body = document.getElementById("appsBody");
+      try {
+        const apps = await apiGetMyApplications(session.token);
+        if (!apps || apps.length === 0) {
+          body.innerHTML = `<div class="empty"><strong>No applications found.</strong><div class="small">Submit a new application above.</div></div>`;
+          return;
+        }
+        body.innerHTML = `
+          <div class="tablewrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Application #</th>
+                  <th>Type</th>
+                  <th>Status</th>
+                  <th>Submitted</th>
+                  <th>Notes</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${apps.map(a => `
+                  <tr>
+                    <td>${a.applicationNumber ?? a.id ?? "—"}</td>
+                    <td>${a.type ?? "—"}</td>
+                    <td>${statusPill(a.status)}</td>
+                    <td>${formatDate(a.submittedAt)}</td>
+                    <td>${a.notes ?? "—"}</td>
+                  </tr>
+                `).join("")}
+              </tbody>
+            </table>
+          </div>
+        `;
+      } catch (e) {
+        body.innerHTML = `
+          <div class="empty">
+            <strong>Backend not connected.</strong>
+            <div class="small">Start backend at <code>http://localhost:3001</code> and expose <code>/api/applications/me</code>.</div>
+          </div>
+        `;
+      }
+    }
+
+    await loadApps();
+document.getElementById("btnNewApp").addEventListener("click", async () => {
+  try {
+    await renderForm({
+      code: "new_license_application",   // must match filename: new_license_application.xml
+      mountId: "formMount",
+      onSubmit: async (data) => {
+        try {
+          await apiCreateApplication(session.token, { type: "NEW_LICENSE", payload: data });
+          toast("Submitted", "Your application was submitted.");
+          await loadApps();
+        } catch (e) {
+          console.error("CreateApplication failed:", e);
+          toast("Not submitted", e?.message || "Backend error.");
+        }
+      }
+    });
+  } catch (e) {
+    console.error("RenderForm error:", e);
+    toast("Form error", e?.message || "Could not load form XML.");
+  }
+});
+
+document.getElementById("btnRenew").addEventListener("click", async () => {
+  try {
+    await renderForm({
+      code: "renewal_application",       // must match filename: renewal_application.xml
+      mountId: "formMount",
+      onSubmit: async (data) => {
+        try {
+          await apiSubmitRenewal(session.token, { payload: data });
+          toast("Submitted", "Your renewal request was submitted.");
+        } catch (e) {
+          console.error("SubmitRenewal failed:", e);
+          toast("Not submitted", e?.message || "Backend error.");
+        }
+      }
+    });
+  } catch (e) {
+    console.error("RenderForm error:", e);
+    toast("Form error", e?.message || "Could not load form XML.");
+  }
+});
+
+  </script>
+</body>
+</html>

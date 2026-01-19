@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>RCMS • Officer Dashboard</title>
+  <link rel="stylesheet" href="./assets/css/styles.css"/>
+</head>
+<body>
+  <div class="topbar">
+    <div class="container">
+      <div class="nav">
+        <a class="brand" href="./index.html">
+          <div class="logo" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M12 2l8 4.6v10.8L12 22l-8-4.6V6.6L12 2z" stroke="white" stroke-width="1.6" opacity=".95"/>
+              <path d="M8 12.2l2.2 2.2L16.5 8" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <div class="title">
+            <strong>RCMS</strong>
+            <span>Nurses Licensing Authority</span>
+          </div>
+        </a>
+
+        <div class="navlinks">
+          <a class="chip" data-nav href="./officer-dashboard.html" aria-current="page">Officer</a>
+          <a class="chip" data-nav href="./applicant-dashboard.html">Applicant</a>
+        </div>
+
+        <div class="navright">
+          <div class="badge warn" data-backendbadge>
+            <span class="dot"></span>
+            <span class="label">Backend</span>&nbsp;·&nbsp;<span class="value">Checking…</span>
+          </div>
+          <div class="badge" data-userbadge><span class="dot"></span>—</div>
+          <button class="btn" id="logoutBtn">Logout</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <main class="main">
+    <div class="container">
+      <section class="hero">
+        <h1 class="h1">Officer Dashboard</h1>
+        <p class="sub">Review applications and take regulatory actions. Approvals issue licenses automatically (once backend is wired).</p>
+      </section>
+
+      <div class="grid">
+        <div class="card">
+          <div class="head">
+            <h2>Applications</h2>
+            <div class="meta">From backend</div>
+          </div>
+          <div class="body" id="appsBody">
+            <div class="empty">
+              <strong>No data yet.</strong>
+              <div class="small">Once backend + SQL Server are connected, submitted applications will appear here for review.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer">Officer view • RCMS</div>
+    </div>
+  </main>
+
+  <div class="toast" data-toast>
+    <div class="t">Title</div>
+    <div class="m">Message</div>
+  </div>
+
+  <script type="module">
+    import { requireAuth, setActiveNav, mountUserBadge, mountBackendBadge, logout, toast, formatDate, statusPill, escapeHtml } from "./assets/js/app.js";
+    import { apiGetAllApplications, apiApproveApplication, apiRejectApplication } from "./assets/js/api.js";
+
+    const session = requireAuth(["OFFICER"]);
+    setActiveNav();
+    mountUserBadge();
+    await mountBackendBadge();
+
+    document.getElementById("logoutBtn").addEventListener("click", logout);
+
+    async function loadAll() {
+      const body = document.getElementById("appsBody");
+      try {
+        const apps = await apiGetAllApplications(session.token);
+        if (!apps || apps.length === 0) {
+          body.innerHTML = `<div class="empty"><strong>No applications found.</strong><div class="small">Waiting for applicants to submit.</div></div>`;
+          return;
+        }
+
+        body.innerHTML = `
+          <div class="tablewrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Application #</th>
+                  <th>Applicant</th>
+                  <th>Type</th>
+                  <th>Status</th>
+                  <th>Submitted</th>
+                  <th style="width:260px;">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${apps.map(a => `
+                  <tr>
+                    <td>${a.applicationNumber ?? a.id ?? "—"}</td>
+                    <td>${escapeHtml(a.applicantName ?? a.email ?? "—")}</td>
+                    <td>${escapeHtml(a.type ?? "—")}</td>
+                    <td>${statusPill(a.status)}</td>
+                    <td>${formatDate(a.submittedAt)}</td>
+                    <td>
+                      <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                        <button class="btn success" data-approve="${a.id}">Approve</button>
+                        <button class="btn danger" data-reject="${a.id}">Reject</button>
+                      </div>
+                    </td>
+                  </tr>
+                `).join("")}
+              </tbody>
+            </table>
+          </div>
+        `;
+
+        body.querySelectorAll("[data-approve]").forEach(btn => {
+          btn.addEventListener("click", async () => {
+            const id = btn.getAttribute("data-approve");
+            try {
+              await apiApproveApplication(session.token, id);
+              toast("Approved", "Application approved and license issued.");
+              await loadAll();
+            } catch (e) {
+              toast("Approve failed", e.message || "Backend not available yet.");
+            }
+          });
+        });
+
+        body.querySelectorAll("[data-reject]").forEach(btn => {
+          btn.addEventListener("click", async () => {
+            const id = btn.getAttribute("data-reject");
+            const reason = prompt("Rejection reason (optional):") || "";
+            try {
+              await apiRejectApplication(session.token, id, reason);
+              toast("Rejected", "Application rejected.");
+              await loadAll();
+            } catch (e) {
+              toast("Reject failed", e.message || "Backend not available yet.");
+            }
+          });
+        });
+
+      } catch (e) {
+        body.innerHTML = `
+          <div class="empty">
+            <strong>Backend not connected.</strong>
+            <div class="small">Start backend and expose <code>/api/applications</code> for officers.</div>
+          </div>
+        `;
+      }
+    }
+
+    await loadAll();
+  </script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<form code="renewal_application" title="License Renewal Request">
+  <field name="licenseNumber" label="License Number" type="text" required="true" />
+  <field name="email" label="Registered Email" type="email" required="true" />
+  <field name="cpdHours" label="CPD Hours Completed" type="number" required="true" />
+  <field name="declaration" label="Declaration" type="select" required="true">
+    <option value="YES">I confirm the information is accurate</option>
+    <option value="NO">I cannot confirm</option>
+  </field>
+  <field name="notes" label="Notes" type="textarea" required="false" />
+</form>

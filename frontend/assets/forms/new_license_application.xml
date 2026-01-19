@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<form code="new_license_application" title="New Nurse License Application">
+  <field name="fullName" label="Full Name" type="text" required="true" />
+  <field name="email" label="Email" type="email" required="true" />
+  <field name="phone" label="Phone" type="text" required="true" />
+  <field name="dateOfBirth" label="Date of Birth" type="date" required="true" />
+
+  <field name="nursingProgram" label="Nursing Program" type="select" required="true">
+    <option value="BSCN">BScN (Bachelor of Science in Nursing)</option>
+    <option value="PN">Practical Nursing (PN)</option>
+    <option value="OTHER">Other</option>
+  </field>
+
+  <field name="gradYear" label="Graduation Year" type="number" required="true" />
+  <field name="notes" label="Additional Notes" type="textarea" required="false" />
+</form>

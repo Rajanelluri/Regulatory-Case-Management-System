@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>RCMS • My License</title>
+  <link rel="stylesheet" href="./assets/css/styles.css"/>
+</head>
+<body>
+  <div class="topbar">
+    <div class="container">
+      <div class="nav">
+        <a class="brand" href="./index.html">
+          <div class="logo" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M12 2l8 4.6v10.8L12 22l-8-4.6V6.6L12 2z" stroke="white" stroke-width="1.6" opacity=".95"/>
+              <path d="M8 12.2l2.2 2.2L16.5 8" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <div class="title">
+            <strong>RCMS</strong>
+            <span>Nurses Licensing Authority</span>
+          </div>
+        </a>
+
+        <div class="navlinks">
+          <a class="chip" data-nav href="./applicant-dashboard.html">Applicant</a>
+          <a class="chip" data-nav href="./license.html" aria-current="page">My License</a>
+        </div>
+
+        <div class="navright">
+          <div class="badge warn" data-backendbadge>
+            <span class="dot"></span>
+            <span class="label">Backend</span>&nbsp;·&nbsp;<span class="value">Checking…</span>
+          </div>
+          <div class="badge" data-userbadge><span class="dot"></span>—</div>
+          <button class="btn" id="logoutBtn">Logout</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <main class="main">
+    <div class="container">
+      <section class="hero">
+        <h1 class="h1">My License</h1>
+        <p class="sub">Once your application is approved, your license details will appear here.</p>
+      </section>
+
+      <div class="grid">
+        <div class="card">
+          <div class="head">
+            <h2>License details</h2>
+            <div class="meta">From backend</div>
+          </div>
+          <div class="body" id="licenseBody">
+            <div class="empty">
+              <strong>No license found.</strong>
+              <div class="small">After approval, backend will return license info from SQL Server.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer">License view • RCMS</div>
+    </div>
+  </main>
+
+  <div class="toast" data-toast>
+    <div class="t">Title</div>
+    <div class="m">Message</div>
+  </div>
+
+  <script type="module">
+    import { requireAuth, setActiveNav, mountUserBadge, mountBackendBadge, logout, formatDate, toast, escapeHtml } from "./assets/js/app.js";
+    import { apiGetMyLicense } from "./assets/js/api.js";
+
+    const session = requireAuth(["APPLICANT","OFFICER"]);
+    setActiveNav();
+    mountUserBadge();
+    await mountBackendBadge();
+
+    document.getElementById("logoutBtn").addEventListener("click", logout);
+
+    async function loadLicense() {
+      const body = document.getElementById("licenseBody");
+      try {
+        const lic = await apiGetMyLicense(session.token);
+        if (!lic) {
+          body.innerHTML = `<div class="empty"><strong>No license found.</strong><div class="small">Submit an application and get it approved.</div></div>`;
+          return;
+        }
+        body.innerHTML = `
+          <div class="kpis">
+            <div class="kpi">
+              <div class="label">License #</div>
+              <div class="value">${escapeHtml(lic.licenseNumber ?? "—")}</div>
+              <div class="hint">Issued by Nurses Licensing Authority</div>
+            </div>
+            <div class="kpi">
+              <div class="label">Status</div>
+              <div class="value">${escapeHtml(lic.status ?? "—")}</div>
+              <div class="hint">Active / Suspended / Expired</div>
+            </div>
+            <div class="kpi">
+              <div class="label">Expiry</div>
+              <div class="value">${formatDate(lic.expiresAt)}</div>
+              <div class="hint">Renew before expiry</div>
+            </div>
+          </div>
+
+          <div style="height:14px"></div>
+
+          <div class="empty">
+            <strong>Holder</strong>
+            <div class="small">${escapeHtml(lic.holderName ?? lic.email ?? "—")}</div>
+          </div>
+        `;
+      } catch (e) {
+        body.innerHTML = `
+          <div class="empty">
+            <strong>Backend not connected.</strong>
+            <div class="small">Start backend and expose <code>/api/licenses/me</code>.</div>
+          </div>
+        `;
+      }
+    }
+
+    await loadLicense();
+  </script>
+</body>
+</html>
