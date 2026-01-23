@@ -101,3 +101,7 @@ GET	/api/applications/me	Applicant applications
 POST	/api/applications	Submit new application
 PUT	/api/applications/:id/approve	Approve
 PUT	/api/applications/:id/reject	Reject
+
+output:
+<img width="1920" height="1200" alt="RCMS" src="https://github.com/user-attachments/assets/6346c348-decd-43c8-9240-d268589663dd" />
+
