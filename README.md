@@ -33,7 +33,7 @@ This project demonstrates **frontend–backend integration**, **SQL Server conne
 
 ---
 
-## 🧱 Tech Stack
+## 🧱 Tech Stack used
 
 ### Frontend
 - HTML5
